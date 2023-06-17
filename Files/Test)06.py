@@ -1,0 +1,504 @@
+import tkinter.messagebox
+from tkinter import *
+from tkinter import messagebox
+from tkinter.ttk import Style
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import itertools
+import os
+os.environ['USE_PYGEOS'] = '0'
+import geopandas as gpd
+
+window = Tk()
+style = Style(window)
+
+heading = Frame(master=window, height=80, bg='blue')
+heading.pack(fill=X)
+
+#heading
+heading_lbl = Label(master=window, text="Crime Frequency Analysis 2020 vs 2021", font = ("arial", 15, "bold"),fg='white', bg='blue', padx = 20).place(x=90,y=20)
+
+rb_crime_type = StringVar(window, "All types")
+rb_year = StringVar(window, "2020")
+rb_place = StringVar(window, "Southwales")
+rb_year_analyze = StringVar(window, "2020")
+rb_analyze_type = StringVar(window, "Crime type")
+"""
+#reading csv files
+df_southwales_1 = pd.read_csv('D:\Melani\CSV\Southwales_2020.csv')
+df_southwales_2 = pd.read_csv('D:\Melani\CSV\Southwales_2021.csv')
+df_WestYorkshire_1 = pd.read_csv('D:\Melani\CSV\WestYorkshire_2020.csv')
+df_WestYorkshire_2 = pd.read_csv('D:\Melani\CSV\WestYorkshire_2021.csv')
+
+"""
+#reading csv files
+df_southwales_1 = pd.read_csv('D:\Ongoing\Melani\CSV\Southwales_2020.csv')
+df_southwales_2 = pd.read_csv('D:\Ongoing\Melani\CSV\Southwales_2021.csv')
+df_WestYorkshire_1 = pd.read_csv('D:\Ongoing\Melani\CSV\WestYorkshire_2020.csv')
+df_WestYorkshire_2 = pd.read_csv('D:\Ongoing\Melani\CSV\WestYorkshire_2021.csv')
+
+
+#smoothing csv files
+df_southwales_2020 = df_southwales_1.drop(columns=["Context", "Crime ID"], axis=1)
+df_southwales_2021 = df_southwales_2.drop(columns=["Context", "Crime ID"], axis=1)
+df_WestYorkshire_2020 = df_WestYorkshire_1.drop(columns=["Context", "Crime ID"], axis=1)
+df_WestYorkshire_2021 = df_WestYorkshire_2.drop(columns=["Context", "Crime ID"], axis=1)
+
+month_array = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec", '']
+month_array_2 = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"]
+sns.set()
+
+def show_bar_chart(dtframe, x_label_name, y_label_name, title, btm_margin, right_margin, rotation):
+    # print(dtframe_for_crime_type)
+    dtframe.plot.bar(stacked=True)
+    plt.xlabel(x_label_name)
+    plt.ylabel(y_label_name)
+    plt.title(title)
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.subplots_adjust(bottom=btm_margin, right=right_margin)
+    plt.xticks(rotation=rotation)
+    plt.show()
+
+def show_pie_chart(sizes, labels):
+
+    # Create a pie chart
+    fig, ax = plt.subplots()
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%')
+    ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+    ax.axis('equal')
+    plt.show()
+
+def show_line_chart(type, x, y, x_label_name, y_label_name, title,label_name, btm_margin, right_margin, rotation):
+
+    fig, ax = plt.subplots()
+    # plotting
+    if type == 1:
+        ax.plot(x, y, color="red", label=label_name)
+
+    elif type == 2:
+        i = 0
+
+        for tr_row in y:
+            if i!=14:
+                plt.plot(x, tr_row,label=label_name[0][i])   #,label=label_name[i]
+            i = i + 1
+
+    elif type == 3:
+        i = 0
+
+        for tr_row in y:
+            if i != 2:
+                plt.plot(x, tr_row, label=label_name[i])  # ,label=label_name[i]
+            i = i + 1
+
+    plt.title(title)
+    plt.xlabel(x_label_name)
+    plt.ylabel(y_label_name)
+    plt.subplots_adjust(bottom=btm_margin, right=right_margin)
+    plt.xticks(rotation=rotation)
+    plt.grid(True)
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+    plt.show()
+
+######################################################
+def func_get_data_place(dtfrm,type_c, year, city):
+    gdf = gpd.read_file('D:\Melani\LSOA_(Dec_2021)_Boundaries_Generalised_Clipped_EW_(BGC)\LSOA_(Dec_2021)_Boundaries_Generalised_Clipped_EW_(BGC).shp')
+    #gdf = gpd.read_file('D:\Ongoing\Melani\LSOA_(Dec_2021)_Boundaries_Generalised_Clipped_EW_(BGC)\LSOA_(Dec_2021)_Boundaries_Generalised_Clipped_EW_(BGC).shp')
+
+    sp_rows_array = []
+    lsoa_arr = []
+    lsoa_count_arr = []
+
+    specific_rows_by_crime = dtfrm.loc[dtfrm['Crime type'] == type_c]
+    grouped_places = specific_rows_by_crime.groupby('LSOA code')
+
+    for x, group in grouped_places:
+        specific_rows_by_place = specific_rows_by_crime.loc[specific_rows_by_crime['LSOA code'] == x]
+        sp_rows_array.append(specific_rows_by_place)
+
+    for row in sp_rows_array:
+        value_counts_by_crime = row['LSOA code'].value_counts()
+        lsoa_arr.append(value_counts_by_crime.keys())
+        lsoa_count_arr.append(value_counts_by_crime.values)
+    #print(lsoa_arr)
+    #print(lsoa_count_arr)
+
+    #create dataframes using arrays
+    dtframe_from_with_LSOA = pd.DataFrame(data=lsoa_arr, columns=['LSOA21CD'])
+    dtframe_from_with_LSOA_count = pd.DataFrame(data=lsoa_count_arr, columns=['LSOA_count'])
+
+    #concat dataframes
+    dtframe_coupled = pd.concat([dtframe_from_with_LSOA, dtframe_from_with_LSOA_count], axis=1)
+
+    # merge dataframe using LSOA code
+    merged = dtframe_coupled.set_index('LSOA21CD').join(gdf.set_index('LSOA21CD'))
+    # convert dataframe as Geodataframe
+    gdf_x = gpd.GeoDataFrame(merged, geometry="geometry")
+
+    # create figure and axes for Matplotlib and set the title
+    fig, ax = plt.subplots(1, figsize=(10, 6))
+    ax.axis('off')
+    ax.set_title(city +' - Crime Report '+year+' - '  + type_c, fontdict={'fontsize': '15', 'fontweight': '3'})
+    gdf_x.plot(column='LSOA_count',
+               cmap='viridis',
+               linewidth=0.9,
+               ax=ax,
+               legend=True)
+
+    plt.show()
+#func_get_data_place('LSOA name',1)
+
+######################################################
+def filter_data_by_crime_type_and_month(df_data, type):
+    sp_rows_array = []
+    index_arr_rtn = []
+    plot_arr_rtn = []
+    i = 0
+
+    grouped_month = df_data.groupby('Month')
+    for month, group in grouped_month:
+        specific_rows_by_month = df_data.loc[df_data['Month'] == month]
+        specific_rows_by_crime = specific_rows_by_month.loc[specific_rows_by_month['Crime type'] == type]
+        sp_rows_array.append(specific_rows_by_crime)
+
+    for row in sp_rows_array:
+        # Get the rows you want using the DataFrame's "loc" method
+        value_counts_by_crime = row['Crime type'].value_counts()
+        plot_arr_rtn.append(value_counts_by_crime.values)
+        if (i == 0):
+            index_arr_rtn.append(value_counts_by_crime.keys())
+        i = i + 1
+    return plot_arr_rtn, index_arr_rtn
+
+def func_get_data_by_crime_type(dtfrm, type, chart, year, city):
+
+    return_array = filter_data_by_crime_type_and_month(dtfrm, type)
+    plot_array, index_array = return_array
+
+    dtframe_for_crime_type = pd.DataFrame(data=plot_array, index=month_array, columns=index_array)
+    #print(dtframe_for_crime_type)
+    #print(plot_array)
+
+    # Convert object array as sequence
+    plt_sequence = itertools.chain(*plot_array)
+    plt_sequence = list(plt_sequence)
+    #print(plt_sequence)
+
+    if chart == "bar":
+        show_bar_chart(dtframe_for_crime_type, 'Months', 'Number of Crimes', city +' - Crime Report '+year+' - ' + type, 0.2, 0.7, 45)
+    elif chart == "pie":
+        labels = month_array_2
+        sizes = plt_sequence
+        show_pie_chart(sizes, labels)
+    elif chart == "line":
+        # data to be plotted
+        x = month_array_2
+        y = plt_sequence
+        show_line_chart(1, x, y, 'Months', 'Number of Crimes',  city +' - Crime Report '+year+' - '  + type, type, 0.2, 0.7, 45)
+
+
+######################################################
+def filter_all_crime_data_by_month(df_data):
+    sp_rows_array = []
+    index_arr_rtn = []
+    plot_arr_rtn = []
+    i = 0
+
+    grouped_month = df_data.groupby('Month')
+
+    for month, group in grouped_month:
+        # Get the rows you want using the DataFrame's "loc" method
+        specific_rows_by_month = df_data.loc[df_data['Month'] == month]
+        sp_rows_array.append(specific_rows_by_month)
+
+    for row in sp_rows_array:
+        value_counts_by_crime = row['Crime type'].value_counts()
+        plot_arr_rtn.append(value_counts_by_crime.values)
+        if (i == 0):
+            index_arr_rtn.append(value_counts_by_crime.keys())
+        i = i + 1
+
+    return plot_arr_rtn, index_arr_rtn
+
+def func_get_data_by_all_crimes_vs_month(dtfrm, chart, year, city):
+
+    return_array = filter_all_crime_data_by_month(dtfrm)
+    plot_array, index_array = return_array
+
+    dtframe_for_month = pd.DataFrame(data=plot_array, index=month_array, columns=index_array)
+    #print(dtframe_for_month)
+    plt.show()
+
+    if chart == "bar":
+        show_bar_chart(dtframe_for_month, 'Months', 'Number of Crimes', city + ' - Crime Report '+year+' - Monthly Crime Frequency', 0.2, 0.7, 45)
+    elif chart == "line":
+
+        plot_list = []
+
+        for row in plot_array:
+            sequence = list(row)
+            plot_list.append(sequence)
+
+        del plot_list[-1]
+        transposed_arr = list(map(list, zip(*plot_list)))
+        # print(transposed_arr)
+        # data to be plotted
+
+        x = month_array_2
+        y = transposed_arr
+        show_line_chart(2, x, y, 'Months', 'Number of Crimes', city + ' - Crime Report '+year+' - Monthly Crime Frequency', index_array ,0.2, 0.7, 45)
+#func_get_data_by_all_crimes_vs_month(1, 'line')
+
+
+######################################################
+def filter_data_by_crime_type(df_data):
+
+    plt_arr = []
+    ind_arr = []
+
+    value_counts_by_crime = df_data['Crime type'].value_counts()
+    plt_arr.append(value_counts_by_crime.values)
+    ind_arr.append(value_counts_by_crime.keys())
+
+    return plt_arr, ind_arr
+
+def func_get_data_by_year(dtf_1, dtf_2, chart, year):
+
+    df_1 = dtf_1
+    df_2 = dtf_2
+
+    return_array = filter_data_by_crime_type(df_1)
+    plot_array_1 = return_array[0]
+    idx_rtn_array = return_array[1]
+
+    return_array = filter_data_by_crime_type(df_2)
+    plot_array_2 = return_array[0]
+
+    dtframe_from_2020 = pd.DataFrame(data=plot_array_1, index=["SouthWales"], columns=idx_rtn_array)
+    dtframe_from_2021 = pd.DataFrame(data=plot_array_2, index=["WestYorkShire"], columns=idx_rtn_array)
+    dtframe_for_month = pd.concat([dtframe_from_2020,dtframe_from_2021], axis=0)
+    my_df = pd.DataFrame(dtframe_for_month.transpose())
+    #print(dtframe_for_month)
+
+    if chart == "bar":
+        show_bar_chart(my_df, 'Crime Type', 'Number of Crimes', 'Crime Report SouthWales vs WestYorkShire in '+ year, 0.5, 0.7, 90)
+    elif chart == "line":
+        # data to be plotted
+        plot_array = []
+
+        plot_array.append(plot_array_1)
+        plot_array.append(plot_array_2)
+
+        sequence = None
+        plot_list = []
+
+        for x_row in idx_rtn_array:
+            sequence = list(x_row)
+            del sequence[-1]
+
+        for y_row in plot_array:
+            y_sequence = itertools.chain(*y_row)
+            y_sequence = list(y_sequence)
+            del y_sequence[-1]
+            plot_list.append(y_sequence)
+
+        x = sequence
+        y = plot_list
+        show_line_chart(3, x, y, 'Crime Type', 'Number of Crimes', 'Crime Report SouthWales vs WestYorkShire in '+ year, ['SouthWales','WestYorkShire'],0.5, 0.7, 90)
+#func_get_data_by_year(1, 'line')
+
+
+######################################################
+def func_get_data_by_year_with_crime_type(dtf_1, dtf_2, type, chart, year):
+
+    df_1 = dtf_1
+    df_2 = dtf_2
+
+    return_array = filter_data_by_crime_type_and_month(df_1, type)
+    plot_array_1 = return_array[0]
+    idx_rtn_array = return_array[1]
+
+    return_array = filter_data_by_crime_type_and_month(df_2, type)
+    plot_array_2 = return_array[0]
+
+    #print(plot_array_1)
+    #print(plot_array_2)
+    #print(idx_rtn_array)
+    dtframe_from_2020 = pd.DataFrame(data=plot_array_1, index=month_array, columns=["SouthWales"])
+    dtframe_from_2021 = pd.DataFrame(data=plot_array_2, index=month_array, columns=["WestYorkShire"])
+    dtframe_for_crime_type = pd.concat([dtframe_from_2020, dtframe_from_2021], axis=1)
+
+    print(dtframe_for_crime_type)
+
+    if chart == "bar":
+        show_bar_chart(dtframe_for_crime_type, 'Months', 'Number of Crimes', 'Crime Report SouthWales vs WestYorkShire in '+ year +' - ' + type, 0.2, 0.7, 45)
+    elif chart == "line":
+        # data to be plotted
+        plot_array = []
+        plot_list = []
+
+        plot_array.append(plot_array_1)
+        plot_array.append(plot_array_2)
+
+        for y_row in plot_array:
+            y_sequence = itertools.chain(*y_row)
+            y_sequence = list(y_sequence)
+            plot_list.append(y_sequence)
+
+        x = month_array_2
+        y = plot_list
+        show_line_chart(3, x, y, 'Months', 'Number of Crimes', 'Crime Report SouthWales vs WestYorkShire in '+ year +' - '  + type, ['SouthWales','WestYorkShire'], 0.2, 0.7, 45)
+#func_get_data_by_year_with_crime_type('Robbery', 'line')
+
+
+def ShowCrime():
+    crime = rb_crime_type.get()
+    return crime
+
+def ShowYear():
+    return rb_year.get()
+
+def ShowPlace():
+    return rb_place.get()
+
+def ShowAlalyzeType():
+    return rb_analyze_type.get()
+
+def ShowAlalyzeTypeYear():
+    return rb_year_analyze.get()
+
+def func_show_chart(value):
+    global df_selcted
+    selected_crime = ShowCrime()
+    selected_year = ShowYear()
+    selected_city = ShowPlace()
+
+    #print(selected_crime + " " + selected_year + " " + selected_city)
+
+    if selected_year == '2020':
+        if selected_city == 'Southwales':
+            df_selcted = df_southwales_2020
+        elif selected_city == 'WestYorkshire':
+            df_selcted = df_WestYorkshire_2020
+    elif selected_year == '2021':
+        if selected_city == 'Southwales':
+            df_selcted = df_southwales_2021
+        elif selected_city == 'WestYorkshire':
+            df_selcted = df_WestYorkshire_2021
+
+    if selected_crime == 'All types':
+        if value != 'pie':
+            if value == 'map':
+                messagebox.showerror('Error!', 'Error: You Cannot create Choropleth Map for All Crime Types!')
+            else: func_get_data_by_all_crimes_vs_month(df_selcted, value, selected_year, selected_city)
+        else:
+            messagebox.showerror('Error!', 'Error: You Cannot create Pie Chart for this!')
+    else:
+        if value != 'map':
+            func_get_data_by_crime_type(df_selcted, selected_crime, value, selected_year, selected_city)
+        else: func_get_data_place(df_selcted, selected_crime, selected_year, selected_city)
+
+def func_show_compare_chart(value):
+    global df_selcted_1
+    global df_selcted_2
+
+    selected_analyze_type = ShowAlalyzeType()
+    selected_analyze_year = ShowAlalyzeTypeYear()
+
+    #print(selected_analyze_type + " - " + selected_analyze_year )
+    #print(value)
+
+    if selected_analyze_year == '2020':
+        df_selcted_1 = df_southwales_2020
+        df_selcted_2 = df_WestYorkshire_2020
+
+    elif selected_analyze_year == '2021':
+        df_selcted_1 = df_southwales_2021
+        df_selcted_2 = df_WestYorkshire_2021
+
+    if selected_analyze_type == 'Crime type':
+        selected_crime = ShowCrime()
+        if selected_crime == 'All types':
+            messagebox.showerror('Error!', 'Error: Please Select a Crime Type!')
+        else: func_get_data_by_year_with_crime_type(df_selcted_1, df_selcted_2, selected_crime, value, selected_analyze_year)
+    elif selected_analyze_type == 'month':
+        func_get_data_by_year(df_selcted_1, df_selcted_2, value, selected_analyze_year)
+
+
+def radio_buttons():
+
+    crimes = [("All Types", "All types"), ("Anti-Social Behaviour", "Anti-social behaviour"), ("Violence and Sexual Offences", "Violence and sexual offences"), ("Public Order", "Public order"), ("Criminal Damage and Arson", "Criminal damage and arson"), ("Shoplifting", "Shoplifting"), ("Vehicle Crime", "Vehicle crime"),
+            ("Drugs", "Drugs"), ("Burglary", "Burglary"),("Possession of Weapons", "Possession of weapons"),("Robbery", "Robbery"), ("Bicycle Theft", "Bicycle theft"), ("Theft from the Person", "Theft from the person"), ("Other Theft", "Other theft"), ("Other Crime", "Other crime")]
+
+    years = [("2020", "2020"), ("2021", "2021")]
+
+    places = [("Southwales", "Southwales"), ("WestYorkshire", "WestYorkshire")]
+
+    analyze_type = [("Crime Type", "Crime type"), ("Month", "month")]
+
+    #add crime types radio buttons
+    label1 = Label(master=window, text="Choose Crime Type",font = ("arial", 8, "bold"), bg="light blue", width=50, padx = 20).place(x=10,y=90)
+    i = 10
+    j = 120
+    for type, val in crimes:
+        if j == 280:
+            j=120
+            i+= 190
+        Radiobutton(window, text=type, padx = 20, font = ("arial", 8, "bold"), variable=rb_crime_type, command=ShowCrime, value=val).place(x=i,y=j)
+        j += 20
+
+    #add year radio buttons
+    label2 = Label(master=window, text="Choose Year", font = ("arial", 8, "bold"), bg="light blue", width=15, padx = 20).place(x=420,y=90)
+    i = 420
+    j = 120
+    for year, val in years:
+        Radiobutton(window, text=year, padx = 20, font = ("arial", 8, "bold"), variable=rb_year, command=ShowYear, value=val).place(x=i,y=j)
+        j += 20
+
+    #add city radio buttons
+    label3 = Label(master=window, text="Choose City", font = ("arial", 8, "bold"), bg="light blue",width=15, padx = 20).place(x=420,y=180)
+    i = 420
+    j = 210
+    for place, val in places:
+        Radiobutton(window, text=place, padx = 20, font = ("arial", 8, "bold"), variable=rb_place, command=ShowPlace, value=val).place(x=i,y=j)
+        j += 20
+
+
+    label3_2 = Label(master=window, text="Choose Analyze Type", font=("arial", 8, "bold"), bg="light blue", width=15, padx=20).place(x=30, y=410)
+    i = 30
+    j = 440
+    for type, val in analyze_type:
+        Radiobutton(window, text=type, padx=20, font=("arial", 8, "bold"), variable=rb_analyze_type, command=ShowAlalyzeType, value=val).place(x=i, y=j)
+        j += 20
+
+
+    label3_3 = Label(master=window, text="Choose Year", font=("arial", 8, "bold"), bg="light blue", width=15, padx=20).place(x=240, y=410)
+    i = 240
+    j = 440
+    for year, val in years:
+        Radiobutton(window, text=year, padx=20, font=("arial", 8, "bold"), variable=rb_year_analyze, command=ShowAlalyzeTypeYear, value=val).place(x=i, y=j)
+        j += 20
+
+def add_butons():
+
+    #add chart buttons
+    label4 = Label(master=window, text="Choose Chart to Analyze", font = ("arial", 8, "bold"), bg="light green",width=73, padx = 20).place(x=10,y=300)
+    btn_bar = Button(window, text="Bar", width=17, fg="black", padx=3, command=lambda: func_show_chart('bar'), pady=3).place(x=10,y=330)
+    btn_pie = Button(window, text="Pie", width=17, fg="black", padx=3, command=lambda: func_show_chart('pie'), pady=3).place(x=150,y=330)
+    btn_line = Button(window, text="Line", width=17, fg="black", padx=3, command=lambda: func_show_chart('line'), pady=3).place(x=290,y=330)
+    btn_line = Button(window, text="Choropleth Map", width=17, fg="black", command=lambda: func_show_chart('map'), padx=3, pady=3).place(x=430, y=330)
+
+    # add chart buttons
+    label5 = Label(master=window, text="Choose Year to Analyze Crime Rate between Both Cities", font=("arial", 8, "bold"), bg="yellow", width=73, padx=20).place(x=10, y=380)
+    btn_2020 = Button(window, text="Bar Chart", width=17, fg="black", command=lambda: func_show_compare_chart('bar'), padx=3, pady=3).place(x=430, y=410)
+    btn_2021 = Button(window, text="Line Chart", width=17, fg="black", command=lambda: func_show_compare_chart('line'), padx=3, pady=3).place(x=430, y=450)
+
+radio_buttons()
+add_butons()
+
+quit = Button(window, text="Quit", width=17, fg="red", command=quit, padx=3, pady=3).place(x=430, y=500)
+
+window.title('Crime Analysis')
+window.geometry("580x555")
+window.mainloop()

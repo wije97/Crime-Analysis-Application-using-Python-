@@ -1,0 +1,2 @@
+how to count same data in csv column using column name in python
+how to separate group and count from python collections
